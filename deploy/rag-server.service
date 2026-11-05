@@ -1,0 +1,28 @@
+# RAG 서버 systemd 유닛
+#
+# 설치(서버에서):
+#   sudo cp deploy/rag-server.service /etc/systemd/system/rag-server.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now rag-server
+#   systemctl status rag-server
+#
+# 로그 확인:
+#   journalctl -u rag-server -f
+
+[Unit]
+Description=Osori Mock RAG Server (FastAPI + FAISS + Bedrock)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Osori-RAG
+EnvironmentFile=/home/ubuntu/Osori-RAG/.env
+# 127.0.0.1 에만 바인딩. 외부 노출은 nginx(80) 경유로만.
+ExecStart=/home/ubuntu/Osori-RAG/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
