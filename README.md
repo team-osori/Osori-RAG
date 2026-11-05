@@ -36,6 +36,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8001
 | `BEDROCK_REGION` | `us-east-1` | Bedrock 리전 |
 | `EMBED_MODEL_ID` | `amazon.titan-embed-text-v2:0` | 임베딩 모델 |
 | `GEN_MODEL_ID` | `anthropic.claude-3-5-sonnet-20240620-v1:0` | 생성 모델(Converse) |
+| `OPENAI_MODEL` | `gpt-4o-mini` | 요청에 `X-OpenAI-Key` 헤더가 있을 때 답변 생성에 쓸 OpenAI 모델 (키는 요청마다 받고 저장하지 않음) |
 | `S3_BUCKET` | `hackathon-e3-t05-data` | 원본 PDF 버킷 |
 | `S3_RAW_PREFIX` | `raw/` | 원본 PDF 키 접두사 |
 | `CHUNK_SIZE` | `800` | 청크 크기(자) |
@@ -98,6 +99,7 @@ curl -X POST "http://127.0.0.1:8001/ingest" \
 
   - `prompt`: 생성 시 **system 프롬프트**로 사용. 생략 시 기본 프롬프트. (A/B 비교용으로 요청마다 변경 가능)
   - `top_k`: 기본 4
+  - 헤더 `X-OpenAI-Key`(선택): 있으면 이 키로 OpenAI에서 답변을 생성하고, 없으면 Bedrock으로 생성합니다. 검색은 항상 Bedrock 임베딩입니다. 키는 저장 · 로그하지 않습니다.
 - 응답 `200`:
 
 ```json

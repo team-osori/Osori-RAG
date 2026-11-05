@@ -173,3 +173,68 @@ def test_ingest_reset_reinitializes_index(
     )
     after = client.get("/health").json()["indexed_chunks"]
     assert after == first  # 누적이 아니라 동일 수치
+
+
+# ---------- X-OpenAI-Key가 있으면 OpenAI로 생성 ----------
+def _ingest_one(client):
+    client.post(
+        "/ingest",
+        files={"file": ("refund.pdf", make_blank_pdf(1), "application/pdf")},
+        headers=HEADERS,
+    )
+
+
+def test_query_uses_openai_when_key_header_present(
+    client, mock_bedrock, mock_s3, mock_parser_text, monkeypatch
+):
+    from app import openai_gen
+
+    calls = {}
+
+    def fake_post(url, body, api_key, timeout):
+        calls.update(url=url, body=body, api_key=api_key)
+        return {"model": "gpt-4o-mini", "choices": [{"message": {"content": " OpenAI 답변 "}}]}
+
+    monkeypatch.setattr(openai_gen, "_post", fake_post)
+    _ingest_one(client)
+    resp = client.post(
+        "/query",
+        json={"question": "환불은?", "prompt": "상담원입니다."},
+        headers={**HEADERS, "X-OpenAI-Key": "sk-test-only"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["answer"] == "OpenAI 답변"
+    assert body["meta"]["model"] == "gpt-4o-mini"
+    assert calls["api_key"] == "sk-test-only"
+    assert calls["body"]["messages"][0] == {"role": "system", "content": "상담원입니다."}
+    assert "환불은?" in calls["body"]["messages"][1]["content"]
+
+
+def test_query_without_key_still_uses_bedrock(client, mock_bedrock, mock_s3, mock_parser_text):
+    _ingest_one(client)
+    resp = client.post("/query", json={"question": "환불은?"}, headers=HEADERS)
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["model"] == "mock-model"
+
+
+def test_openai_error_is_502_without_leaking_key(
+    client, mock_bedrock, mock_s3, mock_parser_text, monkeypatch
+):
+    import urllib.error
+
+    from app import openai_gen
+
+    def fail(url, body, api_key, timeout):
+        raise urllib.error.HTTPError(url, 401, f"bad key {api_key}", {}, None)
+
+    monkeypatch.setattr(openai_gen, "_post", fail)
+    _ingest_one(client)
+    resp = client.post(
+        "/query",
+        json={"question": "환불은?"},
+        headers={**HEADERS, "X-OpenAI-Key": "sk-test-only"},
+    )
+    assert resp.status_code == 502
+    assert "sk-test-only" not in resp.text
+    assert "OpenAI 키" in resp.json()["detail"]

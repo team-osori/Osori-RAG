@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     embed_model_id: str = "amazon.titan-embed-text-v2:0"
     gen_model_id: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 
+    # --- OpenAI (요청에 X-OpenAI-Key가 올 때만 답변 생성에 사용) ---
+    openai_model: str = "gpt-4o-mini"
+    openai_timeout_seconds: float = 50.0
+
     # --- S3 (원본 PDF 보관) ---
     # 버킷을 다른 백엔드와 공유하므로 uploads/ 접두사 아래에 저장한다.
     s3_bucket: str = "hackathon-e3-t05-data"

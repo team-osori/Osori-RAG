@@ -126,15 +126,40 @@
         "summary": "질문에 대한 검색 + 답변 생성",
         "description": "질문 임베딩 → FAISS 검색(top_k) → 검색된 청크를 컨텍스트로 Bedrock에서 답변을 생성합니다.\n\n`prompt`는 생성 시 system 프롬프트로 사용되므로, 요청마다 바꿔 A/B 비교에 쓸 수 있습니다.",
         "operationId": "query_query_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-OpenAI-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "있으면 이 키로 OpenAI에서 답변을 생성합니다(검색은 그대로). 없으면 Bedrock으로 생성합니다. 저장 · 로그하지 않습니다.",
+              "title": "X-Openai-Key"
+            },
+            "description": "있으면 이 키로 OpenAI에서 답변을 생성합니다(검색은 그대로). 없으면 Bedrock으로 생성합니다. 저장 · 로그하지 않습니다."
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/QueryRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -151,11 +176,11 @@
             "description": "API 키 불일치",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
                 "example": {
                   "detail": "유효하지 않은 API 키입니다"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -164,11 +189,11 @@
             "description": "인덱스가 비어 있음",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
                 "example": {
                   "detail": "먼저 /ingest로 문서를 올리세요"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -177,11 +202,11 @@
             "description": "임베딩 또는 답변 생성 실패",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
                 "example": {
                   "detail": "생성 실패: ..."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -196,12 +221,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     }
   },
