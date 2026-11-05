@@ -20,7 +20,9 @@ User=ubuntu
 WorkingDirectory=/home/ubuntu/Osori-RAG
 EnvironmentFile=/home/ubuntu/Osori-RAG/.env
 # 127.0.0.1 에만 바인딩. 외부 노출은 nginx(80) 경유로만.
-ExecStart=/home/ubuntu/Osori-RAG/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001
+# --root-path /rag : nginx가 /rag 접두사를 벗겨 전달하므로, Swagger(/rag/docs)가
+# /rag/openapi.json 을 올바르게 찾도록 접두사를 알려준다.
+ExecStart=/home/ubuntu/Osori-RAG/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --root-path /rag
 Restart=on-failure
 RestartSec=3
 

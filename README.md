@@ -43,6 +43,18 @@ uvicorn app.main:app --host 127.0.0.1 --port 8001
 | `MAX_UPLOAD_BYTES` | `20971520` | 업로드 크기 제한(20MB) |
 | `DATA_DIR` | `data` | 인덱스/메타 저장 경로 |
 
+## API 문서 (Swagger)
+
+서버가 떠 있으면 Swagger UI에서 명세를 보고 바로 호출해 볼 수 있습니다.
+
+- 팀 서버: http://16.208.41.218/rag/docs (ReDoc: `/rag/redoc`, 원본 JSON: `/rag/openapi.json`)
+- 로컬: http://127.0.0.1:8001/docs (`--root-path` 없이 실행한 경우)
+
+오른쪽 위 **Authorize**에 `RAG_API_KEY` 값을 넣으면 `X-API-Key` 헤더가 자동으로 붙습니다.
+
+서버 없이 보려면 정적 명세 [`docs/openapi.json`](docs/openapi.json)을 [Swagger Editor](https://editor.swagger.io)에 붙여넣으세요.
+API를 바꾼 뒤에는 `python -m scripts.export_openapi`로 다시 생성합니다.
+
 ## API 계약
 
 모든 엔드포인트는 `X-API-Key` 헤더가 `RAG_API_KEY`와 일치해야 합니다. 불일치 시 `401`.
