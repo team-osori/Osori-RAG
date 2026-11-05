@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import time
 
-from fastapi import Depends, FastAPI, File, HTTPException, Query, Security, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Security, UploadFile
 from fastapi.security import APIKeyHeader
 
-from . import bedrock
+from . import bedrock, openai_gen
 from .chunker import chunk_pages
 from .config import Settings, get_settings
 from .parser import PdfParseError, extract_pages, has_text, sanitize_filename
@@ -205,6 +205,11 @@ async def ingest(
 def query(
     req: QueryRequest,
     store: VectorStore = Depends(get_store),
+    openai_key: str | None = Header(
+        default=None,
+        alias="X-OpenAI-Key",
+        description="있으면 이 키로 OpenAI에서 답변을 생성합니다(검색은 그대로). 없으면 Bedrock으로 생성합니다. 저장 · 로그하지 않습니다.",
+    ),
 ) -> QueryResponse:
     if store.is_empty():
         raise HTTPException(status_code=409, detail="먼저 /ingest로 문서를 올리세요")
@@ -220,12 +225,14 @@ def query(
     # 2) 검색 (유사도 높은 순)
     hits = store.search(q_vec, req.top_k)
 
-    # 3) 생성
+    # 3) 생성: 요청에 OpenAI 키가 있으면 그 키로, 없으면 Bedrock으로
+    contexts = [h["text"] for h in hits]
     try:
-        answer, model_id = bedrock.generate(
-            req.question, [h["text"] for h in hits], req.prompt
-        )
-    except bedrock.BedrockError as exc:
+        if openai_key and openai_key.strip():
+            answer, model_id = openai_gen.generate(req.question, contexts, req.prompt, openai_key.strip())
+        else:
+            answer, model_id = bedrock.generate(req.question, contexts, req.prompt)
+    except (bedrock.BedrockError, openai_gen.OpenAIError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     latency_ms = int((time.perf_counter() - started) * 1000)
